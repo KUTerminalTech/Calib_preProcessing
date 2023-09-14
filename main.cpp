@@ -123,9 +123,6 @@ int main()
             }
         }
 
-        std::cout << "cameraMatrix: " << cameraMatrix << std::endl;
-        std::cout << "distCoeff: " << distCoeffs << std::endl;
-
         auto end_time = high_resolution_clock::now();
         duration<double> elapse = end_time - start_time;
 
@@ -146,50 +143,54 @@ int main()
         } 
     }
 
+    std::cout << "cameraMatrix: " << cameraMatrix << std::endl;
+    std::cout << "distCoeff: " << distCoeffs << std::endl;
+    std::cout << "Rotation: " << R << std::endl;
+    std::cout << "Translation: " << T << std::endl;
+
+
     YAML::Node calib_config;
 
     calib_config["camera_matrix"]["rows"] = cameraMatrix.rows;
     calib_config["camera_matrix"]["cols"] = cameraMatrix.cols;
 
-    YAML::Node camMx_data_node;
-    for (size_t i = 0; i < cameraMatrix.rows * cameraMatrix.cols; i++) {
-        camMx_data_node.push_back(cameraMatrix.data[i]);
-    }
-    calib_config["camera_matrix"]["data"] = camMx_data_node;
+    // YAML::Node calib_mx_data_node;
+    std::vector<double> cam_mx_data_vec((double*) cameraMatrix.datastart, (double*) cameraMatrix.dataend);
+    // calib_mx_data_node.push_back(cam_mx_data_vec);
+    calib_config["camera_matrix"]["data"] = cam_mx_data_vec;
 
     calib_config["dist_coeffs"]["rows"] = distCoeffs.rows;
     calib_config["dist_coeffs"]["cols"] = distCoeffs.cols;
 
-    YAML::Node distCoeffs_data_node;
-    for (size_t i = 0; i < distCoeffs.rows * distCoeffs.cols; i++) {
-        distCoeffs_data_node.push_back(distCoeffs.data[i]);
-    }
-    calib_config["dist_coeffs"]["data"] = distCoeffs_data_node;
+    // YAML::Node dist_coeff_data_node;
+    std::vector<double> dist_coef_data_vec((double*) distCoeffs.datastart, (double*) distCoeffs.dataend);
+    // dist_coeff_data_node.push_back(dist_coef_data_vec);
 
-    /** ----------------------- projection matrix ----------------------- */
+    calib_config["dist_coeffs"]["data"] = dist_coef_data_vec;
+
+
+    // /** ----------------------- projection matrix ----------------------- */
     Mat outputRotation;
-    Rodrigues(R, outputRotation);
+    Rodrigues(R.row(R.rows - 1), outputRotation);
     Mat Rt;
-    hconcat(outputRotation, T, Rt);
+    hconcat(outputRotation, T.row(T.rows - 1), Rt);
 
-    // ! PROJECTION MX
+    // // ! PROJECTION MX
     Mat projection_mx;
     gemm(cameraMatrix, Rt, 1.0, Mat(), 0.0, projection_mx);
 
     calib_config["projection_matrix"]["rows"] = projection_mx.rows;
     calib_config["projection_matrix"]["cols"] = projection_mx.cols;
-    // calib_config["projection_matrix"]["data"] = projection_mx.data;
+    // // calib_config["projection_matrix"]["data"] = projection_mx.data;
 
-    YAML::Node projection_data_node;
-    for (size_t i = 0; i < projection_mx.rows * projection_mx.cols; i++) {
-        projection_data_node.push_back(projection_mx.data[i]);
-    }
-    calib_config["projection_matrix"]["data"] = projection_data_node;
+    std::vector<double> proj_mx_vec((double*) projection_mx.datastart, (double*) projection_mx.dataend);
+
+    calib_config["projection_matrix"]["data"] = proj_mx_vec;
 
     remove((CALIB_CONFIG_DIR_PATH + "/calib_config.yaml").c_str());
 
     std::ofstream yaml_fout(CALIB_CONFIG_DIR_PATH + "/calib_config.yaml");
-    yaml_fout << calib_config;
+    yaml_fout << YAML::Dump(calib_config);
     yaml_fout.close();
 
     cap.release();
