@@ -8,9 +8,9 @@
 #include <vector>
 #include <unistd.h>
 
-#ifdef __APPLE__
+// #ifdef __APPLE__
 #include <fstream> // ofstream is not recognized in mac
-#endif
+// #endif
 
 // #include <fmt/core.h>
 #include <yaml-cpp/yaml.h>
@@ -165,6 +165,26 @@ int main()
         distCoeffs_data_node.push_back(distCoeffs.data[i]);
     }
     calib_config["dist_coeffs"]["data"] = distCoeffs_data_node;
+
+    /** ----------------------- projection matrix ----------------------- */
+    Mat outputRotation;
+    Rodrigues(R, outputRotation);
+    Mat Rt;
+    hconcat(outputRotation, T, Rt);
+
+    // ! PROJECTION MX
+    Mat projection_mx;
+    gemm(cameraMatrix, Rt, 1.0, Mat(), 0.0, projection_mx);
+
+    calib_config["projection_matrix"]["rows"] = projection_mx.rows;
+    calib_config["projection_matrix"]["cols"] = projection_mx.cols;
+    // calib_config["projection_matrix"]["data"] = projection_mx.data;
+
+    YAML::Node projection_data_node;
+    for (size_t i = 0; i < projection_mx.rows * projection_mx.cols; i++) {
+        projection_data_node.push_back(projection_mx.data[i]);
+    }
+    calib_config["projection_matrix"]["data"] = projection_data_node;
 
     remove((CALIB_CONFIG_DIR_PATH + "/calib_config.yaml").c_str());
 

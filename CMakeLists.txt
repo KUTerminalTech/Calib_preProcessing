@@ -7,17 +7,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # set(OpenCV_DIR "/opt/homebrew/Cellar/opencv/4.8.0_1")
 
-# find_package(PkgConfig REQUIRED)
+find_package(PkgConfig REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(fmt REQUIRED)
-find_package(yaml-cpp REQUIRED)
+# find_package(yaml-cpp REQUIRED)
+pkg_check_modules(yaml_cpp REQUIRED IMPORTED_TARGET yaml-cpp)
 
 add_definitions(-DCONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config")
 
 # include directories
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
-    # ${YAML_CPP_INCLUDE_DIR}
 )
 
 add_executable(${PROJECT_NAME}
@@ -27,7 +26,5 @@ add_executable(${PROJECT_NAME}
 # link libraries
 target_link_libraries( ${PROJECT_NAME}
     ${OpenCV_LIBRARIES}
-    # fmt::fmt
-    # ${YAML_CPP_LIBRARIES}
-    yaml-cpp::yaml-cpp
+    PkgConfig::yaml_cpp
 )
